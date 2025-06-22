@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { SearchFilters } from '../types/search';
 import { Filter, ChevronDown, ChevronUp } from 'lucide-react';
@@ -21,23 +20,23 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFiltersChange }) =
   const currentYear = new Date().getFullYear();
   const yearRanges = [
     { label: 'All time', value: null },
-    { label: '2020s', value: [2020, currentYear] },
-    { label: '2010s', value: [2010, 2019] },
-    { label: '2000s', value: [2000, 2009] },
-    { label: '1990s', value: [1990, 1999] },
-    { label: '1980s', value: [1980, 1989] },
-    { label: '1970s', value: [1970, 1979] },
-    { label: '1960s', value: [1960, 1969] },
-    { label: '1950s', value: [1950, 1959] },
-    { label: 'Pre-1950', value: [1800, 1949] },
+    { label: '2020s', value: [2020, currentYear] as [number, number] },
+    { label: '2010s', value: [2010, 2019] as [number, number] },
+    { label: '2000s', value: [2000, 2009] as [number, number] },
+    { label: '1990s', value: [1990, 1999] as [number, number] },
+    { label: '1980s', value: [1980, 1989] as [number, number] },
+    { label: '1970s', value: [1970, 1979] as [number, number] },
+    { label: '1960s', value: [1960, 1969] as [number, number] },
+    { label: '1950s', value: [1950, 1959] as [number, number] },
+    { label: 'Pre-1950', value: [1800, 1949] as [number, number] },
   ];
 
-  const handleFilterChange = (key: keyof SearchFilters, value: any) => {
+  const handleFilterChange = (key: keyof SearchFilters, value: string | [number, number] | number | null) => {
     const newFilters = { ...filters };
     if (value === null || value === '') {
       delete newFilters[key];
     } else {
-      newFilters[key] = value;
+      (newFilters as any)[key] = value;
     }
     onFiltersChange(newFilters);
   };
