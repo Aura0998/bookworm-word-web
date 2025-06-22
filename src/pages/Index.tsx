@@ -1,73 +1,9 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SearchBar from '../components/SearchBar';
 import SearchResults from '../components/SearchResults';
 import FilterPanel from '../components/FilterPanel';
 import { Book, SearchFilters } from '../types/search';
-
-// Mock data for demonstration
-const mockBooks: Book[] = [
-  {
-    id: '1',
-    title: 'To Kill a Mockingbird',
-    author: 'Harper Lee',
-    year: 1960,
-    genre: 'Fiction',
-    publisher: 'J.B. Lippincott & Co.',
-    isbn: '978-0-06-112008-4',
-    pageCount: 281,
-    language: 'English',
-    description: 'A gripping tale of racial injustice and childhood innocence in the American South.',
-    coverImage: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=600&fit=crop',
-    matchedWords: ['justice', 'mockingbird', 'childhood', 'innocence'],
-    wordCount: 100388
-  },
-  {
-    id: '2',
-    title: '1984',
-    author: 'George Orwell',
-    year: 1949,
-    genre: 'Dystopian Fiction',
-    publisher: 'Secker & Warburg',
-    isbn: '978-0-452-28423-4',
-    pageCount: 328,
-    language: 'English',
-    description: 'A dystopian social science fiction novel about totalitarian control.',
-    coverImage: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&h=600&fit=crop',
-    matchedWords: ['dystopia', 'surveillance', 'totalitarian', 'freedom'],
-    wordCount: 88942
-  },
-  {
-    id: '3',
-    title: 'Pride and Prejudice',
-    author: 'Jane Austen',
-    year: 1813,
-    genre: 'Romance',
-    publisher: 'T. Egerton',
-    isbn: '978-0-14-143951-8',
-    pageCount: 432,
-    language: 'English',
-    description: 'A romantic novel of manners set in Georgian England.',
-    coverImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop',
-    matchedWords: ['romance', 'pride', 'prejudice', 'society', 'marriage'],
-    wordCount: 122189
-  },
-  {
-    id: '4',
-    title: 'The Great Gatsby',
-    author: 'F. Scott Fitzgerald',
-    year: 1925,
-    genre: 'Fiction',
-    publisher: 'Charles Scribner\'s Sons',
-    isbn: '978-0-7432-7356-5',
-    pageCount: 180,
-    language: 'English',
-    description: 'A critique of the American Dream set in the Jazz Age.',
-    coverImage: 'https://images.unsplash.com/photo-1621351183012-e2f9972dd9bf?w=400&h=600&fit=crop',
-    matchedWords: ['american', 'dream', 'gatsby', 'wealth', 'illusion'],
-    wordCount: 47094
-  }
-];
+import { queryEngineApi } from '../services/queryEngineApi';
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -75,43 +11,94 @@ const Index = () => {
   const [filters, setFilters] = useState<SearchFilters>({});
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [stats, setStats] = useState({
+    wordCount: 0,
+    docCount: 0,
+    topWords: [] as Array<{ word: string; count: number }>
+  });
+  const [error, setError] = useState<string | null>(null);
+
+  // Load initial stats
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const [wordCountResponse, docCountResponse, topWordsResponse] = await Promise.all([
+          queryEngineApi.getStats('word_count'),
+          queryEngineApi.getStats('doc_count'),
+          queryEngineApi.getStats('top_words')
+        ]);
+
+        setStats({
+          wordCount: wordCountResponse.value as number,
+          docCount: docCountResponse.value as number,
+          topWords: topWordsResponse.value as Array<{ word: string; count: number }>
+        });
+      } catch (error) {
+        console.error('Failed to load stats:', error);
+        setError('Failed to load statistics. Please check your connection.');
+      }
+    };
+
+    loadStats();
+  }, []);
 
   const handleSearch = async (query: string, searchFilters: SearchFilters) => {
+    if (!query.trim()) {
+      setError('Please enter a search term');
+      return;
+    }
+
     setIsSearching(true);
     setSearchQuery(query);
     setFilters(searchFilters);
+    setError(null);
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Mock search logic
-    let results = mockBooks;
-    
-    if (query.trim()) {
-      results = mockBooks.filter(book => 
-        book.title.toLowerCase().includes(query.toLowerCase()) ||
-        book.author.toLowerCase().includes(query.toLowerCase()) ||
-        book.matchedWords.some(word => word.toLowerCase().includes(query.toLowerCase())) ||
-        book.description.toLowerCase().includes(query.toLowerCase())
-      );
+    try {
+      // Split query into words for API
+      const words = query.trim().split(/\s+/);
+      
+      // Convert filters to API format
+      const apiFilters: SearchFilters = {};
+      if (searchFilters.author) apiFilters.author = searchFilters.author;
+      if (searchFilters.yearRange) {
+        apiFilters.from = searchFilters.yearRange[0].toString();
+        apiFilters.to = searchFilters.yearRange[1].toString();
+      }
+      
+      console.log('Searching for words:', words, 'with filters:', apiFilters);
+      
+      const apiResponse = await queryEngineApi.searchDocuments(words, apiFilters);
+      console.log('Search completed:', apiResponse);
+      
+      const transformedBooks = queryEngineApi.transformApiResponseToBooks(apiResponse);
+      
+      // Add matched words based on search query
+      const booksWithMatches = transformedBooks.map(book => ({
+        ...book,
+        matchedWords: words.filter(word => 
+          book.title.toLowerCase().includes(word.toLowerCase()) ||
+          book.author.toLowerCase().includes(word.toLowerCase()) ||
+          book.description.toLowerCase().includes(word.toLowerCase())
+        )
+      }));
+      
+      setSearchResults(booksWithMatches);
+      setHasSearched(true);
+    } catch (error) {
+      console.error('Search failed:', error);
+      setError('Search failed. Please check your connection and try again.');
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
     }
-    
-    // Apply filters
-    if (searchFilters.genre) {
-      results = results.filter(book => book.genre === searchFilters.genre);
+  };
+
+  const handleFiltersChange = (newFilters: SearchFilters) => {
+    setFilters(newFilters);
+    if (hasSearched && searchQuery) {
+      // Re-run search with new filters
+      handleSearch(searchQuery, newFilters);
     }
-    if (searchFilters.yearRange) {
-      results = results.filter(book => 
-        book.year >= searchFilters.yearRange![0] && book.year <= searchFilters.yearRange![1]
-      );
-    }
-    if (searchFilters.language) {
-      results = results.filter(book => book.language === searchFilters.language);
-    }
-    
-    setSearchResults(results);
-    setIsSearching(false);
-    setHasSearched(true);
   };
 
   return (
@@ -136,12 +123,33 @@ const Index = () => {
             
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">
-                {mockBooks.length.toLocaleString()} books indexed
+                {stats.docCount.toLocaleString()} books indexed
+              </span>
+              <span className="text-sm text-gray-600">
+                {stats.wordCount.toLocaleString()} unique words
               </span>
             </div>
           </div>
         </div>
       </header>
+
+      {/* Error Message */}
+      {error && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {!hasSearched ? (
@@ -192,13 +200,31 @@ const Index = () => {
                   <p className="text-gray-600 text-sm">Intelligent ranking based on relevance and context</p>
                 </div>
               </div>
+
+              {/* Top Words Section */}
+              {stats.topWords.length > 0 && (
+                <div className="mt-12">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Most Indexed Words</h3>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {stats.topWords.slice(0, 10).map((wordStat, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSearch(wordStat.word, {})}
+                        className="px-3 py-1 text-sm bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 rounded-full hover:from-blue-100 hover:to-indigo-100 transition-colors border border-blue-200"
+                      >
+                        {wordStat.word} ({wordStat.count})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ) : (
           /* Search Results Section */
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             <div className="lg:col-span-1">
-              <FilterPanel filters={filters} onFiltersChange={setFilters} />
+              <FilterPanel filters={filters} onFiltersChange={handleFiltersChange} />
             </div>
             
             <div className="lg:col-span-3">

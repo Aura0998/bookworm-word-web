@@ -13,6 +13,9 @@ export interface Book {
   coverImage: string;
   matchedWords: string[];
   wordCount: number;
+  // Additional fields from your API
+  document?: string;
+  metadata?: Record<string, string>;
 }
 
 export interface SearchFilters {
@@ -22,6 +25,8 @@ export interface SearchFilters {
   author?: string;
   minWordCount?: number;
   maxWordCount?: number;
+  from?: string;
+  to?: string;
 }
 
 export interface SearchContextMatch {
@@ -29,4 +34,17 @@ export interface SearchContextMatch {
   context: string;
   pageNumber: number;
   relevanceScore: number;
+}
+
+export interface ApiSearchResponse {
+  status: string;
+  results: Array<{
+    document: string;
+    metadata: Record<string, string>;
+  }>;
+}
+
+export interface ApiStatsResponse {
+  type: string;
+  value: number | Array<{ word: string; count: number }>;
 }

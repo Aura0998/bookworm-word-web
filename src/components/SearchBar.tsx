@@ -18,7 +18,14 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, isSearching, initialQue
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearch(query, {});
+    if (query.trim()) {
+      onSearch(query, {});
+    }
+  };
+
+  const handleExampleSearch = (searchTerm: string) => {
+    setQuery(searchTerm);
+    onSearch(searchTerm, {});
   };
 
   return (
@@ -53,31 +60,38 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, isSearching, initialQue
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={() => onSearch('freedom', {})}
-          className="px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors"
-        >
-          freedom
-        </button>
-        <button
-          type="button"
-          onClick={() => onSearch('love', {})}
+          onClick={() => handleExampleSearch('love')}
           className="px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors"
         >
           love
         </button>
         <button
           type="button"
-          onClick={() => onSearch('justice', {})}
+          onClick={() => handleExampleSearch('freedom')}
+          className="px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors"
+        >
+          freedom
+        </button>
+        <button
+          type="button"
+          onClick={() => handleExampleSearch('justice')}
           className="px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors"
         >
           justice
         </button>
         <button
           type="button"
-          onClick={() => onSearch('society', {})}
+          onClick={() => handleExampleSearch('society')}
           className="px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors"
         >
           society
+        </button>
+        <button
+          type="button"
+          onClick={() => handleExampleSearch('government')}
+          className="px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors"
+        >
+          government
         </button>
       </div>
     </form>
