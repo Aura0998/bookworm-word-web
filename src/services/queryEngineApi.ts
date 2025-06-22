@@ -1,7 +1,7 @@
 
 import { SearchFilters, ApiSearchResponse, ApiStatsResponse, Book } from '../types/search';
 
-const API_BASE_URL = 'http://192.168.0.56/queryengine';
+const API_BASE_URL = 'http://192.168.0.56';
 
 class QueryEngineApiService {
   async searchDocuments(words: string[], filters: SearchFilters = {}): Promise<ApiSearchResponse> {
@@ -13,7 +13,7 @@ class QueryEngineApiService {
     if (filters.author) params.append('author', filters.author);
     
     const queryString = params.toString();
-    const url = `${API_BASE_URL}/documents/${wordsParam}${queryString ? '?' + queryString : ''}`;
+    const url = `${API_BASE_URL}/queryengine/documents/${wordsParam}${queryString ? '?' + queryString : ''}`;
     
     console.log('Making API request to:', url);
     
@@ -36,7 +36,7 @@ class QueryEngineApiService {
   }
 
   async getStats(type: 'word_count' | 'doc_count' | 'top_words'): Promise<ApiStatsResponse> {
-    const url = `${API_BASE_URL}/stats/${type}`;
+    const url = `${API_BASE_URL}/queryengine/stats/${type}`;
     
     const response = await fetch(url, {
       method: 'GET',
