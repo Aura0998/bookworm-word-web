@@ -1,16 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import { Settings } from 'lucide-react';
 import SearchBar from '../components/SearchBar';
 import SearchResults from '../components/SearchResults';
 import FilterPanel from '../components/FilterPanel';
+import SettingsModal from '../components/SettingsModal';
 import { Book, SearchFilters } from '../types/search';
 import { queryEngineApi } from '../services/queryEngineApi';
+import { useSettings } from '../contexts/SettingsContext';
 
 const Index = () => {
+  const { apiEndpoint } = useSettings();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Book[]>([]);
   const [filters, setFilters] = useState<SearchFilters>({});
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [stats, setStats] = useState({
     wordCount: 0,
     docCount: 0,
@@ -35,12 +40,12 @@ const Index = () => {
         });
       } catch (error) {
         console.error('Failed to load stats:', error);
-        setError('Failed to load statistics. Please check your connection.');
+        setError('Failed to load statistics. Please check your connection and API endpoint.');
       }
     };
 
     loadStats();
-  }, []);
+  }, [apiEndpoint]); // Reload stats when API endpoint changes
 
   const handleSearch = async (query: string, searchFilters: SearchFilters) => {
     if (!query.trim()) {
@@ -128,6 +133,13 @@ const Index = () => {
               <span className="text-sm text-gray-600">
                 {stats.wordCount.toLocaleString()} unique words
               </span>
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                title="API Settings"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
             </div>
           </div>
         </div>
@@ -245,6 +257,11 @@ const Index = () => {
           </div>
         )}
       </div>
+
+      <SettingsModal 
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </div>
   );
 };

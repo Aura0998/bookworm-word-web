@@ -1,10 +1,13 @@
 
 import { SearchFilters, ApiSearchResponse, ApiStatsResponse, Book } from '../types/search';
 
-const API_BASE_URL = 'http://192.168.0.56';
-
 class QueryEngineApiService {
+  private getApiBaseUrl(): string {
+    return localStorage.getItem('apiEndpoint') || 'http://192.168.0.56';
+  }
+
   async searchDocuments(words: string[], filters: SearchFilters = {}): Promise<ApiSearchResponse> {
+    const API_BASE_URL = this.getApiBaseUrl();
     const wordsParam = words.join('+');
     const params = new URLSearchParams();
     
@@ -36,6 +39,7 @@ class QueryEngineApiService {
   }
 
   async getStats(type: 'word_count' | 'doc_count' | 'top_words'): Promise<ApiStatsResponse> {
+    const API_BASE_URL = this.getApiBaseUrl();
     const url = `${API_BASE_URL}/queryengine/stats/${type}`;
     
     const response = await fetch(url, {
